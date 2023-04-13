@@ -1,0 +1,10 @@
+Flask
+python-dotenv
+openai
+gunicorn
+celery
+redis
+flask-cors
+twilio
+pydub
+SpeechRecognition
