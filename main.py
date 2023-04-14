@@ -134,11 +134,9 @@ def incoming_sms():
 
     elif incoming_msg.startswith("/clear"):
         try:
-            user_data = {
-                "number": number,
-            }
+            user_id = number
+            conversations[user_id] = {'conversations': [], 'responses': []}
             new_response_text = "Your chat thread has now been reset. What else can I assist you with today?"
-            new_response_text_save = new_response_text
         except Exception as e:
             my_error = str(e)
             print(my_error)
