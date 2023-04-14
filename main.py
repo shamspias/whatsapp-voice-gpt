@@ -173,7 +173,7 @@ def incoming_sms():
         file_id = str(uuid.uuid4())
         ogg_file = f"voice_message_{file_id}.ogg"
         wav_file = f"voice_message_{file_id}.wav"
-        m4a_file = f"voice_message_{file_id}.m4a"
+        mp4_file = f"voice_message_{file_id}.mp4"
 
         with open(ogg_file, "wb") as f:
             f.write(media_content)
@@ -183,17 +183,17 @@ def incoming_sms():
 
         # ... (previous code)
 
-        # Convert the voice message to .m4a format
+        # Convert the voice message to .mp4 format
         sound = AudioSegment.from_file(ogg_file, format="ogg")
-        sound.export(m4a_file, format="m4a")
+        sound.export(mp4_file, format="mp4")
 
         resp = MessagingResponse()
-        resp.message(new_response_text).media(m4a_file)
+        resp.message(new_response_text).media(mp4_file)
 
         # Delete the temporary files
         os.remove(ogg_file)
         os.remove(wav_file)
-        os.remove(m4a_file)
+        os.remove(mp4_file)
 
         return str(resp)
 
