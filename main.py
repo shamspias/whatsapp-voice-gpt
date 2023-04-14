@@ -51,7 +51,7 @@ def generate_response_chat(message_list):
     return response["choices"][0]["message"]["content"].strip()
 
 
-def conversation_tracking(text_message, user_id, old_model=True):
+def conversation_tracking(text_message, user_id):
     """
     Make remember all the conversation
     :param old_model: Open AI model
@@ -148,8 +148,10 @@ def incoming_sms():
 
         try:
 
+            new_message_list = conversation_tracking(incoming_msg, number)
+
             # Generate a response using GPT-3 in a separate task
-            response_text = generate_response_chat.delay(incoming_msg).get()
+            response_text = generate_response_chat.delay(new_message_list).get()
             new_response_text = response_text
 
 
