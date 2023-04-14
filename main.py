@@ -149,7 +149,7 @@ def incoming_sms():
         try:
 
             # Generate a response using GPT-3 in a separate task
-            response_text = generate_response.delay(incoming_msg).get()
+            response_text = generate_response_chat.delay(incoming_msg).get()
             new_response_text = response_text
 
 
