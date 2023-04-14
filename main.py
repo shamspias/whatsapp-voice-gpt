@@ -188,7 +188,8 @@ def incoming_sms():
         sound.export(mp4_file, format="mp4")
 
         resp = MessagingResponse()
-        resp.message(new_response_text).media(mp4_file)
+        resp.message(new_response_text)
+        # resp.message(new_response_text).media(mp4_file)
 
         # Delete the temporary files
         os.remove(ogg_file)
