@@ -9,6 +9,7 @@ from celery import Celery
 import requests
 import openai
 import os
+import uuid
 
 app = Flask(__name__)
 
@@ -169,17 +170,30 @@ def incoming_sms():
             new_response_text = response_text
 
     if voice:
-        resp = MessagingResponse()
-        resp.message(new_response_text)
-        # resp.message(new_response_text).media('voice_message.ogg')
-        # Delete the temporary files
-        os.remove("voice_message.ogg")
-        os.remove("voice_message.wav")
+        file_id = str(uuid.uuid4())
+        ogg_file = f"voice_message_{file_id}.ogg"
+        wav_file = f"voice_message_{file_id}.wav"
+        m4a_file = f"voice_message_{file_id}.m4a"
 
-        return str(resp)
-    else:
+        with open(ogg_file, "wb") as f:
+            f.write(media_content)
+
+        sound = AudioSegment.from_file(ogg_file, format="ogg")
+        sound.export(wav_file, format="wav")
+
+        # ... (previous code)
+
+        # Convert the voice message to .m4a format
+        sound = AudioSegment.from_file(ogg_file, format="ogg")
+        sound.export(m4a_file, format="m4a")
+
         resp = MessagingResponse()
-        resp.message(new_response_text)
+        resp.message(new_response_text).media(m4a_file)
+
+        # Delete the temporary files
+        os.remove(ogg_file)
+        os.remove(wav_file)
+        os.remove(m4a_file)
 
         return str(resp)
 
