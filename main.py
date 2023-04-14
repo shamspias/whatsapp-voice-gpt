@@ -95,6 +95,18 @@ def conversation_tracking(text_message, user_id):
     return response
 
 
+def clear_conversation_history(user_id):
+    """
+    Clear the conversation history for a specific user
+    :param user_id: user id
+    :return: None
+    """
+    if user_id in conversations:
+        conversations[user_id] = {'conversations': [], 'responses': []}
+        return True
+    return False
+
+
 @app.route("/chat", methods=["POST"])
 @cross_origin()
 def incoming_sms():
@@ -135,8 +147,10 @@ def incoming_sms():
     elif incoming_msg.startswith("/clear"):
         try:
             user_id = number
-            conversations[user_id] = {'conversations': [], 'responses': []}
-            new_response_text = "Your chat thread has now been reset. What else can I assist you with today?"
+            if clear_conversation_history(user_id):
+                new_response_text = "Your chat thread has now been reset. What else can I assist you with today?"
+            else:
+                new_response_text = "No conversation history to clear. What else can I assist you with today?"
         except Exception as e:
             my_error = str(e)
             print(my_error)
