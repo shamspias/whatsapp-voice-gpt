@@ -51,23 +51,6 @@ def generate_response_chat(message_list):
     return response["choices"][0]["message"]["content"].strip()
 
 
-@celery.task
-def generate_response(input_text):
-    # Use the OpenAI API to generate a response
-    response = openai.Completion.create(
-        model="text-davinci-003",
-        prompt=SYSTEM_PROMPT + "\n\n" + input_text,
-        temperature=0.7,
-        max_tokens=256,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0
-    )
-
-    # Return the response text
-    return response["choices"][0]["text"].strip()
-
-
 def conversation_tracking(text_message, user_id, old_model=True):
     """
     Make remember all the conversation
@@ -84,39 +67,24 @@ def conversation_tracking(text_message, user_id, old_model=True):
     # Store the updated conversations and responses for this user
     conversations[user_id] = {'conversations': user_messages, 'responses': user_responses}
 
-    if old_model:
-        # Construct the full conversation history in the "human: bot: " format
-        conversation_history = ""
-        for i in range(min(len(user_messages), len(user_responses))):
-            conversation_history += f"human: {user_messages[i]}\nvia: {user_responses[i]}\n"
+    # Construct the full conversation history in the user:assistant, " format
+    conversation_history = []
 
-        if conversation_history == "":
-            conversation_history = "human:{}\nvia:".format(text_message)
-        else:
-            conversation_history += "human:{}\nvia:".format(text_message)
-
-        # Generate response from old model
-        task = generate_response.apply_async(args=[conversation_history])
-        response = task.get()
-    else:
-        # Construct the full conversation history in the user:assistant, " format
-        conversation_history = []
-
-        for i in range(min(len(user_messages), len(user_responses))):
-            conversation_history.append({
-                "role": "user", "content": user_messages[i]
-            })
-            conversation_history.append({
-                "role": "assistant", "content": user_responses[i]
-            })
-
-        # Add last prompt
+    for i in range(min(len(user_messages), len(user_responses))):
         conversation_history.append({
-            "role": "user", "content": text_message
+            "role": "user", "content": user_messages[i]
         })
-        # Generate response
-        task = generate_response_chat.apply_async(args=[conversation_history])
-        response = task.get()
+        conversation_history.append({
+            "role": "assistant", "content": user_responses[i]
+        })
+
+    # Add last prompt
+    conversation_history.append({
+        "role": "user", "content": text_message
+    })
+    # Generate response
+    task = generate_response_chat.apply_async(args=[conversation_history])
+    response = task.get()
 
     # Add the response to the user's responses
     user_responses.append(response)
