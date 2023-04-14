@@ -147,13 +147,8 @@ def incoming_sms():
     else:
 
         try:
-
-            new_message_list = conversation_tracking(incoming_msg, number)
-
-            # Generate a response using GPT-3 in a separate task
-            response_text = generate_response_chat.delay(new_message_list).get()
+            response_text = conversation_tracking(incoming_msg, number)
             new_response_text = response_text
-
 
         except Exception as e:
             my_error = str(e)
