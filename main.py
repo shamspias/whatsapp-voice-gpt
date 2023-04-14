@@ -193,7 +193,8 @@ def incoming_sms():
 
     if voice:
         resp = MessagingResponse()
-        resp.message(new_response_text).media('voice_message.ogg')
+        resp.message(new_response_text)
+        # resp.message(new_response_text).media('voice_message.ogg')
         # Delete the temporary files
         os.remove("voice_message.ogg")
         os.remove("voice_message.wav")
