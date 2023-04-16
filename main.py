@@ -148,6 +148,7 @@ def incoming_sms():
 
         text = text.lower()
         incoming_msg = text
+
     if incoming_msg.startswith("/start"):
         new_response_text = "Hello, I am Sonic, your personal assistant. How can I help you today?\n1. /clear to " \
                             "clear old conversation"
@@ -183,7 +184,11 @@ def incoming_sms():
         # Delete the temporary files
         os.remove(wav_file)
 
-        return str(resp)
+    else:
+        resp = MessagingResponse()
+        resp.message(body=new_response_text)
+
+    return str(resp)
 
 
 if __name__ == "__main__":
