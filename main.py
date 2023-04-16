@@ -108,6 +108,16 @@ def clear_conversation_history(user_id):
     return False
 
 
+def save_voice_message_to_wav(media_content, filename):
+    with open(filename + ".ogg", "wb") as f:
+        f.write(media_content)
+
+    sound = AudioSegment.from_file(filename + ".ogg", format="ogg")
+    sound.export(filename + ".wav", format="wav")
+
+    os.remove(filename + ".ogg")
+
+
 @app.route("/chat", methods=["POST"])
 @cross_origin()
 def incoming_sms():
@@ -120,27 +130,24 @@ def incoming_sms():
     # Check if the message is a voice message
     if request.values.get("NumMedia") != "0":
         voice = True
+        file_id = str(uuid.uuid4())
         media_url = request.values.get("MediaUrl0")
         media_content = requests.get(media_url).content
 
-        # Use the Via API to convert the voice message to text
-        # Save the file to disk
-        with open("voice_message.ogg", "wb") as f:
-            f.write(media_content)
+        file_id = str(uuid.uuid4())
+        wav_file_name = f"voice_message_{file_id}"
 
-        # Use pydub to read in the audio file and convert it to WAV format
-        sound = AudioSegment.from_file("voice_message.ogg", format="ogg")
-        sound.export("voice_message.wav", format="wav")
+        save_voice_message_to_wav(media_content, wav_file_name)
 
-        # Use SpeechRecognition to transcribe the voice message
+        wav_file = wav_file_name + ".wav"
+
         r = sr.Recognizer()
-        with sr.AudioFile("voice_message.wav") as source:
+        with sr.AudioFile(wav_file) as source:
             audio_data = r.record(source)
             text = r.recognize_google(audio_data)
 
         text = text.lower()
         incoming_msg = text
-
     if incoming_msg.startswith("/start"):
         new_response_text = "Hello, I am Sonic, your personal assistant. How can I help you today?\n1. /clear to " \
                             "clear old conversation"
@@ -170,31 +177,11 @@ def incoming_sms():
             new_response_text = response_text
 
     if voice:
-        file_id = str(uuid.uuid4())
-        ogg_file = f"voice_message_{file_id}.ogg"
-        wav_file = f"voice_message_{file_id}.wav"
-        mp4_file = f"voice_message_{file_id}.mp4"
-
-        with open(ogg_file, "wb") as f:
-            f.write(media_content)
-
-        sound = AudioSegment.from_file(ogg_file, format="ogg")
-        sound.export(wav_file, format="wav")
-
-        # ... (previous code)
-
-        # Convert the voice message to .mp4 format
-        sound = AudioSegment.from_file(ogg_file, format="ogg")
-        sound.export(mp4_file, format="mp4")
-
         resp = MessagingResponse()
-        resp.message(body=new_response_text, media=mp4_file)
-        # resp.message(new_response_text).media(mp4_file)
+        resp.message(body=new_response_text)
 
         # Delete the temporary files
-        os.remove(ogg_file)
         os.remove(wav_file)
-        os.remove(mp4_file)
 
         return str(resp)
 
