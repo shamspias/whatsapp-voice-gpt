@@ -46,6 +46,8 @@ def send_response(text, to_number, media_url=None):
 
 @celery.task
 def generate_response_chat(message_list, to_number, processing_message_sid):
+    print("message_list:", message_list)  # Add this line to debug the message_list content
+
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
