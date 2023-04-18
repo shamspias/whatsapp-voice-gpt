@@ -56,6 +56,7 @@ def send_response(text, to_number, media_url=None):
                 to=to_number,
                 media_url=media_url
             )
+    return True
 
 
 @celery.task
@@ -75,10 +76,11 @@ def generate_response_chat(message_list, to_number, processing_message_sid):
     if response_text is None:
         response_text = "I'm sorry, I couldn't generate a response for that."
 
-    send_response(response_text, to_number)  # No need to pass media_url parameter
+    send_message = send_response(response_text, to_number)  # No need to pass media_url parameter
 
-    # Delete the "Processing your request. Please wait..." message
-    twilio_client.messages(processing_message_sid).delete()
+    if send_message:
+        # Delete the "Processing your request. Please wait..." message
+        twilio_client.messages(processing_message_sid).delete()
 
     return response_text
 
