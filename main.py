@@ -45,7 +45,7 @@ def send_response(text, to_number, media_url=None):
 
 
 @celery.task
-def generate_response_chat(message_list):
+def generate_response_chat(message_list, to_number, processing_message_sid):
     print("message_list:", message_list)  # Add this line to debug the message_list content
 
     response = openai.ChatCompletion.create(
@@ -60,6 +60,11 @@ def generate_response_chat(message_list):
 
     if response_text is None:
         response_text = "I'm sorry, I couldn't generate a response for that."
+
+    send_response(response_text, to_number)  # No need to pass media_url parameter
+
+    # Delete the "Processing your request. Please wait..." message
+    twilio_client.messages(processing_message_sid).delete()
 
     return response_text
 
@@ -96,21 +101,16 @@ def conversation_tracking(text_message, user_id, to_number, processing_message_s
         "role": "user", "content": text_message
     })
     # Generate response
-    task = generate_response_chat.apply_async(args=[conversation_history, ])
+    # Generate response
+    task = generate_response_chat.apply_async(args=[conversation_history, to_number, processing_message_sid])
 
-    try:
-        response = task.get(timeout=60)  # Set a timeout (in seconds) for the task to complete
+    response = task.get()
 
-        # Add the response to the user's responses
-        user_responses.append(response)
+    # Add the response to the user's responses
+    user_responses.append(response)
 
-        # Store the updated conversations and responses for this user
-        conversations[user_id] = {'conversations': user_messages, 'responses': user_responses}
-        send_response(response, to_number)  # No need to pass media_url parameter
-
-    except TimeoutError:
-        response = "I'm sorry, it took too long to generate a response. Please try again later."
-        send_response(response, to_number)  # No need to pass media_url parameter
+    # Store the updated conversations and responses for this user
+    conversations[user_id] = {'conversations': user_messages, 'responses': user_responses}
 
     return response
 
@@ -189,9 +189,14 @@ def incoming_sms():
             new_response_text = "Can't Delete Conversation"
 
     else:
-        processing_message = send_response("Processing your request. Please wait...", to_number)
-        processing_message_sid = processing_message.sid
-        conversation_tracking(incoming_msg, number, to_number, processing_message_sid)
+        try:
+            processing_message = send_response("Processing your request. Please wait...", to_number)
+            processing_message_sid = processing_message.sid
+            conversation_tracking(incoming_msg, number, to_number, processing_message_sid)
+        except Exception as e:
+            my_error = str(e)
+            print(my_error)
+            send_response("Problem with fetch API or getting Data from Brain!", to_number)
 
     if voice:
         # Delete the temporary files
