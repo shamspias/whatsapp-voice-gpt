@@ -55,7 +55,7 @@ def generate_response_chat(message_list, to_number, processing_message_sid):
     )
 
     response_text = response["choices"][0]["message"]["content"].strip()
-    send_response(response_text, to_number, media_url="")
+    send_response(response_text, to_number)  # No need to pass media_url parameter
 
     # Delete the "Processing your request. Please wait..." message
     twilio_client.messages(processing_message_sid).delete()
