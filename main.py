@@ -189,14 +189,9 @@ def incoming_sms():
             new_response_text = "Can't Delete Conversation"
 
     else:
-        try:
-            processing_message = send_response("Processing your request. Please wait...", to_number)
-            processing_message_sid = processing_message.sid
-            conversation_tracking(incoming_msg, number, to_number, processing_message_sid)
-        except Exception as e:
-            my_error = str(e)
-            print(my_error)
-            send_response("Problem with fetch API or getting Data from Brain!", to_number)
+        processing_message = send_response("Processing your request. Please wait...", to_number)
+        processing_message_sid = processing_message.sid
+        conversation_tracking(incoming_msg, number, to_number, processing_message_sid)
 
     if voice:
         # Delete the temporary files
