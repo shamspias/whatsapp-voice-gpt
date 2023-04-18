@@ -203,11 +203,12 @@ def incoming_sms():
             new_response_text = "Can't Delete Conversation"
 
     else:
-
         processing_message = send_response("Processing your request. Please wait...", to_number)
-        processing_message_sid = processing_message.sid
-        conversation_tracking(incoming_msg, number, to_number, processing_message_sid)
-
+        if processing_message is not None:
+            processing_message_sid = processing_message.sid
+            conversation_tracking(incoming_msg, number, to_number, processing_message_sid)
+        else:
+            print("Error: processing_message is None")
     if voice:
         # Delete the temporary files
         os.remove(wav_file)
@@ -219,11 +220,6 @@ def incoming_sms():
 
         return str(resp)
     else:
-        if processing_message is not None:
-            processing_message_sid = processing_message.sid
-            conversation_tracking(incoming_msg, number, to_number, processing_message_sid)
-        else:
-            print("Error: processing_message is None")
 
         return '', 204
 
