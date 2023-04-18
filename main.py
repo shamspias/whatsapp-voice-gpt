@@ -96,7 +96,7 @@ def conversation_tracking(text_message, user_id, to_number, processing_message_s
         "role": "user", "content": text_message
     })
     # Generate response
-    task = generate_response_chat.apply_async(args=[conversation_history, to_number, processing_message_sid])
+    task = generate_response_chat.apply_async(args=[conversation_history, ])
 
     try:
         response = task.get(timeout=60)  # Set a timeout (in seconds) for the task to complete
