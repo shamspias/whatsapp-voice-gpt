@@ -57,6 +57,10 @@ def generate_response_chat(message_list, to_number, processing_message_sid):
     )
 
     response_text = response["choices"][0]["message"]["content"].strip()
+
+    if response_text is None:
+        response_text = "I'm sorry, I couldn't generate a response for that."
+
     send_response(response_text, to_number)  # No need to pass media_url parameter
 
     # Delete the "Processing your request. Please wait..." message
