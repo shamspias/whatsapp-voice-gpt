@@ -36,12 +36,17 @@ SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT")
 
 
 def send_response(text, to_number, media_url=None):
-    return twilio_client.messages.create(
-        body=text,
-        from_=os.getenv("TWILIO_PHONE_NUMBER"),
-        to=to_number,
-        media_url=media_url
-    )
+    # Split the response text into chunks of 1600 characters or less
+    split_text = [text[i:i + 1600] for i in range(0, len(text), 1600)]
+
+    # Send each chunk as a separate message
+    for chunk in split_text:
+        twilio_client.messages.create(
+            body=chunk,
+            from_=os.getenv("TWILIO_PHONE_NUMBER"),
+            to=to_number,
+            media_url=media_url
+        )
 
 
 @celery.task
