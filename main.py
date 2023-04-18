@@ -36,17 +36,26 @@ SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT")
 
 
 def send_response(text, to_number, media_url=None):
-    # Split the response text into chunks of 1600 characters or less
-    split_text = [text[i:i + 1600] for i in range(0, len(text), 1600)]
-
-    # Send each chunk as a separate message
-    for chunk in split_text:
-        twilio_client.messages.create(
-            body=chunk,
+    text_length = len(text)
+    if text_length < 1600:
+        return twilio_client.messages.create(
+            body=text,
             from_=os.getenv("TWILIO_PHONE_NUMBER"),
             to=to_number,
             media_url=media_url
         )
+    else:
+        # Split the response text into chunks of 1600 characters or less
+        split_text = [text[i:i + 1600] for i in range(0, len(text), 1600)]
+
+        # Send each chunk as a separate message
+        for chunk in split_text:
+            twilio_client.messages.create(
+                body=chunk,
+                from_=os.getenv("TWILIO_PHONE_NUMBER"),
+                to=to_number,
+                media_url=media_url
+            )
 
 
 @celery.task
@@ -210,6 +219,12 @@ def incoming_sms():
 
         return str(resp)
     else:
+        if processing_message is not None:
+            processing_message_sid = processing_message.sid
+            conversation_tracking(incoming_msg, number, to_number, processing_message_sid)
+        else:
+            print("Error: processing_message is None")
+
         return '', 204
 
 
