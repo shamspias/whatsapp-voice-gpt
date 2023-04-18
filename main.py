@@ -136,6 +136,7 @@ def incoming_sms():
     incoming_msg = request.values.get('Body', '').strip()
     mgs_form = request.values.get('From', '').strip()
     number = mgs_form[9:23]
+    to_number = mgs_form
     voice = False
     new_response_text = ""
     other_response = False
@@ -181,13 +182,13 @@ def incoming_sms():
 
     else:
         try:
-            processing_message = send_response("Processing your request. Please wait...", number)
+            processing_message = send_response("Processing your request. Please wait...", to_number)
             processing_message_sid = processing_message.sid
-            conversation_tracking(incoming_msg, number, number, processing_message_sid)
+            conversation_tracking(incoming_msg, number, to_number, processing_message_sid)
         except Exception as e:
             my_error = str(e)
             print(my_error)
-            send_response("Problem with fetch API or getting Data from Brain!", number)
+            send_response("Problem with fetch API or getting Data from Brain!", to_number)
 
     if voice:
         # Delete the temporary files
