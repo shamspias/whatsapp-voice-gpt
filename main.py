@@ -45,7 +45,7 @@ def send_response(text, to_number, media_url=None):
 
 
 @celery.task
-def generate_response_chat(message_list, to_number, processing_message_sid):
+def generate_response_chat(message_list):
     print("message_list:", message_list)  # Add this line to debug the message_list content
 
     response = openai.ChatCompletion.create(
@@ -61,10 +61,7 @@ def generate_response_chat(message_list, to_number, processing_message_sid):
     if response_text is None:
         response_text = "I'm sorry, I couldn't generate a response for that."
 
-    send_response(response_text, to_number)  # No need to pass media_url parameter
-
-    # Delete the "Processing your request. Please wait..." message
-    twilio_client.messages(processing_message_sid).delete()
+    return response_text
 
 
 def conversation_tracking(text_message, user_id, to_number, processing_message_sid):
@@ -100,7 +97,7 @@ def conversation_tracking(text_message, user_id, to_number, processing_message_s
     })
     # Generate response
     # Generate response
-    task = generate_response_chat.apply_async(args=[conversation_history, to_number, processing_message_sid])
+    task = generate_response_chat.apply_async(args=[conversation_history, ])
 
     response = task.get()
 
@@ -109,6 +106,11 @@ def conversation_tracking(text_message, user_id, to_number, processing_message_s
 
     # Store the updated conversations and responses for this user
     conversations[user_id] = {'conversations': user_messages, 'responses': user_responses}
+
+    send_response(response, to_number)  # No need to pass media_url parameter
+
+    # Delete the "Processing your request. Please wait..." message
+    twilio_client.messages(processing_message_sid).delete()
 
     return response
 
