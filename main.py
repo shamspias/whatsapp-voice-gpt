@@ -28,9 +28,6 @@ openai.api_key = os.getenv("OPEN_AI_KEY")
 conversations = {}
 
 # Initialize the Twilio API
-
-
-# Your Account SID and Auth Token from twilio.com/console
 account_sid = os.getenv("TWILIO_ACCOUNT_SID")
 auth_token = os.getenv("TWILIO_AUTH_TOKEN")
 twilio_client = Client(account_sid, auth_token)
@@ -38,8 +35,17 @@ twilio_client = Client(account_sid, auth_token)
 SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT")
 
 
+def send_response(text, to_number, media_url=None):
+    return twilio_client.messages.create(
+        body=text,
+        from_=os.getenv("TWILIO_PHONE_NUMBER"),
+        to=to_number,
+        media_url=media_url
+    )
+
+
 @celery.task
-def generate_response_chat(message_list):
+def generate_response_chat(message_list, to_number, processing_message_sid):
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
@@ -47,12 +53,15 @@ def generate_response_chat(message_list):
                       "content": SYSTEM_PROMPT},
                  ] + message_list
     )
-    print(response)
 
-    return response["choices"][0]["message"]["content"].strip()
+    response_text = response["choices"][0]["message"]["content"].strip()
+    send_response(response_text, to_number, media_url="")
+
+    # Delete the "Processing your request. Please wait..." message
+    twilio_client.messages(processing_message_sid).delete()
 
 
-def conversation_tracking(text_message, user_id):
+def conversation_tracking(text_message, user_id, to_number, processing_message_sid):
     """
     Make remember all the conversation
     :param old_model: Open AI model
@@ -84,7 +93,9 @@ def conversation_tracking(text_message, user_id):
         "role": "user", "content": text_message
     })
     # Generate response
-    task = generate_response_chat.apply_async(args=[conversation_history])
+    # Generate response
+    task = generate_response_chat.apply_async(args=[conversation_history, to_number, processing_message_sid])
+
     response = task.get()
 
     # Add the response to the user's responses
@@ -126,11 +137,12 @@ def incoming_sms():
     mgs_form = request.values.get('From', '').strip()
     number = mgs_form[9:23]
     voice = False
+    new_response_text = ""
+    other_response = False
 
     # Check if the message is a voice message
     if request.values.get("NumMedia") != "0":
         voice = True
-        file_id = str(uuid.uuid4())
         media_url = request.values.get("MediaUrl0")
         media_content = requests.get(media_url).content
 
@@ -150,10 +162,12 @@ def incoming_sms():
         incoming_msg = text
 
     if incoming_msg.startswith("/start"):
+        other_response = True
         new_response_text = "Hello, I am Sonic, your personal assistant. How can I help you today?\n1. /clear to " \
                             "clear old conversation"
 
     elif incoming_msg.startswith("/clear"):
+        other_response = True
         try:
             user_id = number
             if clear_conversation_history(user_id):
@@ -166,29 +180,27 @@ def incoming_sms():
             new_response_text = "Can't Delete Conversation"
 
     else:
-
         try:
-            response_text = conversation_tracking(incoming_msg, number)
-            new_response_text = response_text
-
+            processing_message = send_response("Processing your request. Please wait...", number)
+            processing_message_sid = processing_message.sid
+            conversation_tracking(incoming_msg, number, number, processing_message_sid)
         except Exception as e:
             my_error = str(e)
             print(my_error)
-            response_text = "Problem with fetch API or getting Data from Brain!"
-            new_response_text = response_text
+            send_response("Problem with fetch API or getting Data from Brain!", number)
 
     if voice:
-        resp = MessagingResponse()
-        resp.message(body=new_response_text)
-
         # Delete the temporary files
         os.remove(wav_file)
 
-    else:
+    if other_response:
+
         resp = MessagingResponse()
         resp.message(body=new_response_text)
 
-    return str(resp)
+        return str(resp)
+    else:
+        return '', 204
 
 
 if __name__ == "__main__":
