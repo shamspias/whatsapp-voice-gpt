@@ -96,21 +96,21 @@ def conversation_tracking(text_message, user_id, to_number, processing_message_s
         "role": "user", "content": text_message
     })
     # Generate response
-    # Generate response
-    task = generate_response_chat.apply_async(args=[conversation_history, ])
+    task = generate_response_chat.apply_async(args=[conversation_history, to_number, processing_message_sid])
 
-    response = task.get()
+    try:
+        response = task.get(timeout=60)  # Set a timeout (in seconds) for the task to complete
 
-    # Add the response to the user's responses
-    user_responses.append(response)
+        # Add the response to the user's responses
+        user_responses.append(response)
 
-    # Store the updated conversations and responses for this user
-    conversations[user_id] = {'conversations': user_messages, 'responses': user_responses}
+        # Store the updated conversations and responses for this user
+        conversations[user_id] = {'conversations': user_messages, 'responses': user_responses}
+        send_response(response, to_number)  # No need to pass media_url parameter
 
-    send_response(response, to_number)  # No need to pass media_url parameter
-
-    # Delete the "Processing your request. Please wait..." message
-    twilio_client.messages(processing_message_sid).delete()
+    except TimeoutError:
+        response = "I'm sorry, it took too long to generate a response. Please try again later."
+        send_response(response, to_number)  # No need to pass media_url parameter
 
     return response
 
