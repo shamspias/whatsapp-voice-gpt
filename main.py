@@ -56,11 +56,10 @@ def send_response(text, to_number, media_url=None):
                 to=to_number,
                 media_url=media_url
             )
-    return True
 
 
 @celery.task
-def generate_response_chat(message_list, to_number, processing_message_sid):
+def generate_response_chat(message_list, to_number):
     print("message_list:", message_list)  # Add this line to debug the message_list content
 
     response = openai.ChatCompletion.create(
@@ -76,16 +75,12 @@ def generate_response_chat(message_list, to_number, processing_message_sid):
     if response_text is None:
         response_text = "I'm sorry, I couldn't generate a response for that."
 
-    send_message = send_response(response_text, to_number)  # No need to pass media_url parameter
-
-    if send_message:
-        # Delete the "Processing your request. Please wait..." message
-        twilio_client.messages(processing_message_sid).delete()
+    send_response(response_text, to_number)  # No need to pass media_url parameter
 
     return response_text
 
 
-def conversation_tracking(text_message, user_id, to_number, processing_message_sid):
+def conversation_tracking(text_message, user_id, to_number):
     """
     Make remember all the conversation
     :param old_model: Open AI model
@@ -118,7 +113,7 @@ def conversation_tracking(text_message, user_id, to_number, processing_message_s
     })
     # Generate response
     # Generate response
-    task = generate_response_chat.apply_async(args=[conversation_history, to_number, processing_message_sid])
+    task = generate_response_chat.apply_async(args=[conversation_history, to_number])
 
     response = task.get()
 
@@ -205,12 +200,9 @@ def incoming_sms():
             new_response_text = "Can't Delete Conversation"
 
     else:
-        processing_message = send_response("Processing your request. Please wait...", to_number)
-        if processing_message is not None:
-            processing_message_sid = processing_message.sid
-            conversation_tracking(incoming_msg, number, to_number, processing_message_sid)
-        else:
-            print("Error: processing_message is None")
+
+        conversation_tracking(incoming_msg, number, to_number)
+
     if voice:
         # Delete the temporary files
         os.remove(wav_file)
