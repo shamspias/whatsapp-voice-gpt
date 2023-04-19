@@ -34,6 +34,9 @@ twilio_client = Client(account_sid, auth_token)
 
 SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT")
 
+FLASK_HOST = os.getenv("FLASK_HOST")
+FLASK_PORT = os.getenv("FLASK_PORT")
+
 
 def send_response(text, to_number, media_url=None):
     text_length = len(text)
@@ -223,4 +226,4 @@ def incoming_sms():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host=FLASK_HOST, port=FLASK_PORT, debug=True)
