@@ -107,6 +107,10 @@ def conversation_tracking(text_message, user_id, to_number):
             "role": "assistant", "content": user_responses[i]
         })
 
+    total_length = sum(len(message["content"]) for message in conversation_history)
+    if total_length > 3800:
+        clear_conversation_history(user_id)
+
     # Add last prompt
     conversation_history.append({
         "role": "user", "content": text_message
